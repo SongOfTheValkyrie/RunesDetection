@@ -1,0 +1,5 @@
+.vscode/*
+env/*
+venv/*
+tensorflow-for-poets-2/*
+
