@@ -1,5 +1,8 @@
 #https://hackernoon.com/efficient-implementation-of-mobilenet-and-yolo-object-detection-algorithms-for-image-annotation-717e867fa27d
 from keras import applications
+from keras.utils import to_categorical
+import numpy as np
+import cv2
 from keras.preprocessing.image import ImageDataGenerator
 from keras import optimizers
 from keras.models import Sequential, Model
@@ -8,33 +11,33 @@ from keras import backend as k
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard, EarlyStopping
 from keras.models import load_model
 import os
+import re
 import pickle
+from sklearn.model_selection import train_test_split
 from keras.models import model_from_json
 import matplotlib.pyplot as plt 
 
 image_width, image_height= 256, 256
+rootdir = "/media/sf_Runes"
 
-nb_train_samples = 11000
-nb_validation_sample = 2000
+nb_train_samples = 5
+n_classes = 5
+nb_validation_sample = 5
 batch_size = 8
 
-model = applications.mobilenetv2(weights= "imagenet", include_top=False, input_shape=(image_height, image_width,3))
 
-x=model.layers[7].output
-#take the first five layers of the model
-x=Flatten()(x)
-x=Dense(1024, activation="relu")(x)
-x=Dropout(0.5)(x)
-x=Dense(384, activation="relu")(x)
-x=Dropout(0.5)(x)
+model = applications.MobileNetV2(weights= "imagenet", include_top=False, input_shape=(image_height, image_width,3))
+x = GlobalAveragePooling2D()(model.output)
 x=Dense(96, activation="relu")(x)
 x=Dropout(0.5)(x)
-predictions = Dense(30, activation="softmax")(x)
+predictions = Dense(5, activation="softmax")(x)
+model =Model(input=model.input, output=predictions)
+for layer in model.layers[:20]:
+    layer.trainable = False
+for layer in model.layers[20:]:
+    layer.trainable = True
 
-model_final =Model(input=model.input, output=predictions)
-
-model_final = load_model("weights_Mobile_Net.h5")
-model_final.compile(loss="categorical_crossentropy", optimizer=optimizers.nadam(lr=0.00001), metrics=["accuracy"])
+model.compile(loss="categorical_crossentropy", optimizer=optimizers.nadam(lr=0.00001), metrics=["accuracy"])
 
 train_datagen = ImageDataGenerator(rescale = 1./255,
                                    shear_range = 0.2,
@@ -45,18 +48,28 @@ train_datagen = ImageDataGenerator(rescale = 1./255,
                                    height_shift_range=0.3,
                                    rotation_range=30)
 
-test_datagen = ImageDataGenerator(rescale = 1./255,
-horizontal_flip = True,
-fill_mode = "nearest",
-zoom_range = 0.3,
-width_shift_range = 0.3,
-height_shift_range=0.3,
-rotation_range=30)
+train_datagen = ImageDataGenerator(rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    validation_split=0.2) # set validation split
 
-training_set = train_datagen.flow_from_directory('./HE_Chal', target_size=(256,256), btach_size = 8, class_mode='categorical')
-test_set = test_datagen.flow_from_directory('./Validation', target_size=(256,256), batch_size=8, class_mode='categorical')
-model_final.fit_generator(training_set, steos_per_epoch = 1000, epochs = 80, validation_data = test_set, validation_steps = 1000)
-print(model.summary())
+train_generator = train_datagen.flow_from_directory(
+    rootdir,
+    target_size=(256,256),
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='training') # set as training data
+
+validation_generator = train_datagen.flow_from_directory(
+    rootdir, # same directory as training data
+    target_size=(256,256),
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='validation') # set as validation data
+
+model.fit_generator(train_generator,validation_data = validation_generator, epochs = 1, verbose=1)
+#print(model.summary())
 #uncomment the follwoing to save your weights and model.
 '''model_json=model_final.to_json()
 
