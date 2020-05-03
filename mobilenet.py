@@ -18,12 +18,12 @@ from keras.models import model_from_json
 import matplotlib.pyplot as plt 
 
 image_width, image_height= 256, 256
-rootdir = "/media/sf_Runes"
+rootdir = "/media/sf_Runes/test"
 
 nb_train_samples = 5
 n_classes = 5
 nb_validation_sample = 5
-batch_size = 8
+batch_size = 32
 
 
 model = applications.MobileNetV2(weights= "imagenet", include_top=False, input_shape=(image_height, image_width,3))
@@ -39,14 +39,6 @@ for layer in model.layers[20:]:
 
 model.compile(loss="categorical_crossentropy", optimizer=optimizers.nadam(lr=0.00001), metrics=["accuracy"])
 
-train_datagen = ImageDataGenerator(rescale = 1./255,
-                                   shear_range = 0.2,
-                                   zoom_range = 0.2,
-                                   horizontal_flip = True,
-                                   fill_mode="nearest",
-                                   width_shift_range=0.3,
-                                   height_shift_range=0.3,
-                                   rotation_range=30)
 
 train_datagen = ImageDataGenerator(rescale=1./255,
     shear_range=0.2,
@@ -59,6 +51,7 @@ train_generator = train_datagen.flow_from_directory(
     target_size=(256,256),
     batch_size=batch_size,
     class_mode='categorical',
+    save_to_dir='/home/jasmin/Projects/test_folder',
     subset='training') # set as training data
 
 validation_generator = train_datagen.flow_from_directory(
@@ -68,30 +61,10 @@ validation_generator = train_datagen.flow_from_directory(
     class_mode='categorical',
     subset='validation') # set as validation data
 
-model.fit_generator(train_generator,validation_data = validation_generator, epochs = 1, verbose=1)
-#print(model.summary())
-#uncomment the follwoing to save your weights and model.
-'''model_json=model_final.to_json()
-
-with open("model.json", "w") as json_file:
-    json_file.write(model_json)
-model_final.save_weights("weights_VGG.h5")
-model_final.save("model_27.h5")
-#model_final.predict(test_set, batch_size=batch_size)
-'''
-'''
-json_file = open('model.json', 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-loaded_model = model_from_json(loaded_model_json)
-# load weights into new model
-loaded_model.load_weights("weights_VGG.h5",by_name=True)
-print("Loaded model from disk")
- 
-# evaluate loaded model on test data
-loaded_model.compile(loss='categorical_crossentropy', optimizer='nadam', metrics=['accuracy'])
-
-#print(loaded_model.summary())
-loaded_model.fit_generator(training_set,                         steps_per_epoch = 1000,epochs = 100,                         validation_data = test_set,validation_steps=1000)
-#score = loaded_model.evaluate(training_set,test_set , verbose=0)
-'''
+for i in range(1):
+    gen_data.next()
+#es = EarlyStopping(monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto', baseline=None, restore_best_weights=False)
+#model.fit_generator(train_generator,validation_data = validation_generator, epochs = 1, verbose=1,callbacks=[es])
+# serialize weights to HDF5
+#model.save_weights("model.h5")
+#print("Saved model to disk")
