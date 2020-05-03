@@ -18,7 +18,7 @@ from keras.models import model_from_json
 import matplotlib.pyplot as plt 
 
 image_width, image_height= 256, 256
-rootdir = "/media/sf_Runes/test"
+rootdir = "/media/sf_Runes/sf_Runes"
 
 nb_train_samples = 5
 n_classes = 5
@@ -39,11 +39,13 @@ for layer in model.layers[20:]:
 
 model.compile(loss="categorical_crossentropy", optimizer=optimizers.nadam(lr=0.00001), metrics=["accuracy"])
 
-
 train_datagen = ImageDataGenerator(rescale=1./255,
     shear_range=0.2,
     zoom_range=0.2,
     horizontal_flip=True,
+    rotation_range=30,
+    width_shift_range=0.2,
+	height_shift_range=0.2,
     validation_split=0.2) # set validation split
 
 train_generator = train_datagen.flow_from_directory(
@@ -51,7 +53,7 @@ train_generator = train_datagen.flow_from_directory(
     target_size=(256,256),
     batch_size=batch_size,
     class_mode='categorical',
-    save_to_dir='/home/jasmin/Projects/test_folder',
+    #save_to_dir='/home/jasmin/Projects/test_folder',
     subset='training') # set as training data
 
 validation_generator = train_datagen.flow_from_directory(
@@ -61,10 +63,8 @@ validation_generator = train_datagen.flow_from_directory(
     class_mode='categorical',
     subset='validation') # set as validation data
 
-for i in range(1):
-    gen_data.next()
-#es = EarlyStopping(monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto', baseline=None, restore_best_weights=False)
-#model.fit_generator(train_generator,validation_data = validation_generator, epochs = 1, verbose=1,callbacks=[es])
+es = EarlyStopping(monitor='val_loss',min_delta=0.0001, patience=15, verbose=0, mode='auto', baseline=None, restore_best_weights=False)
+model.fit_generator(train_generator,validation_data = validation_generator, epochs = 150, verbose=1,callbacks=[es])
 # serialize weights to HDF5
-#model.save_weights("model.h5")
-#print("Saved model to disk")
+model.save_weights("model.h5")
+print("Saved model to disk")
