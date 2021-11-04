@@ -1,6 +1,6 @@
 #https://hackernoon.com/efficient-implementation-of-mobilenet-and-yolo-object-detection-algorithms-for-image-annotation-717e867fa27d
 from keras import applications
-from keras.utils import to_categorical
+from tensorflow.keras.utils import to_categorical
 from sklearn.metrics import confusion_matrix,classification_report
 import numpy as np
 import cv2
@@ -23,7 +23,7 @@ rootdir = "/media/sf_Runes/sf_Runes"
 valdir="/media/sf_Runes/Validation"
 batch_size = 32
 
-model = applications.MobileNetV2(weights= "imagenet", include_top=False, input_shape=(image_height, image_width,3))
+model = tensorflow.keras.applications.mobilenet_v2(weights= "imagenet", include_top=False, input_shape=(image_height, image_width,3))
 x = GlobalAveragePooling2D()(model.output)
 x=Dense(96, activation="relu")(x)
 x=Dropout(0.5)(x)
