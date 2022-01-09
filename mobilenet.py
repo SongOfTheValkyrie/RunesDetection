@@ -1,4 +1,6 @@
 #https://hackernoon.com/efficient-implementation-of-mobilenet-and-yolo-object-detection-algorithms-for-image-annotation-717e867fa27d
+import tensorflow as tf
+from tensorflow import keras
 from keras import applications
 from tensorflow.keras.utils import to_categorical
 from sklearn.metrics import confusion_matrix,classification_report
@@ -19,22 +21,24 @@ from keras.models import model_from_json
 import matplotlib.pyplot as plt 
 
 image_width, image_height= 256, 256
-rootdir = "/media/sf_Runes/sf_Runes"
-valdir="/media/sf_Runes/Validation"
+rootdir = "C:/Users/Jasmin/Documents/RunesApp/Runes"
 batch_size = 32
 
-model = tensorflow.keras.applications.mobilenet_v2(weights= "imagenet", include_top=False, input_shape=(image_height, image_width,3))
+model = applications.mobilenet_v2.MobileNetV2(weights= "imagenet", include_top=False, input_shape=(image_height, image_width,3))
 x = GlobalAveragePooling2D()(model.output)
 x=Dense(96, activation="relu")(x)
 x=Dropout(0.5)(x)
 predictions = Dense(5, activation="softmax")(x)
-model =Model(input=model.input, output=predictions)
 for layer in model.layers[:20]:
     layer.trainable = False
 for layer in model.layers[20:]:
     layer.trainable = True
 
-model.compile(loss="categorical_crossentropy", optimizer=optimizers.adam(lr=0.00001), metrics=["accuracy"])
+adam=tf.keras.optimizers.Adam(
+    learning_rate=0.00001, amsgrad=False,
+    name='Adam'
+)
+model.compile(loss="categorical_crossentropy", optimizer=adam, metrics=["accuracy"])
 
 train_datagen = ImageDataGenerator(rescale=1./255,
     shear_range=0.2,
@@ -61,7 +65,7 @@ validation_generator = train_datagen.flow_from_directory(
 
 
 eval_generator = eval_datagen.flow_from_directory(
-    valdir,
+    rootdir,
     target_size=(256,256),
     batch_size=1,
     class_mode='categorical',
@@ -82,7 +86,7 @@ y_pred = np.argmax(Y_pred, axis=1)
 print('Confusion Matrix')
 print(confusion_matrix(eval_generator.classes, y_pred))
 y_test = eval_generator.classes
-target_names = ['Fehu', 'Hagalaz', 'Ingwaz','Laguz','Sowilo']
+target_names = ['Algiz', 'Fehu', 'Ingwaz','Sowilo']
 print(classification_report(eval_generator.classes, y_pred, target_names=target_names))
 
 #cm = confusion_matrix(y_test, y_pred)
