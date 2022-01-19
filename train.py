@@ -1,13 +1,17 @@
 from argparse import ArgumentParser
 import os
 import numpy as np
+import cv2
 from numpy import empty
 from sklearn.datasets import load_iris
 import tensorflow.compat.v1 as tf
-from skimage import io 
+from numpy import expand_dims
+from keras.preprocessing.image import ImageDataGenerator
 from mobilenetv3_factory import build_mobilenetv3
 from datasets import build_dataset
 from sklearn.model_selection import train_test_split
+from keras.preprocessing.image import img_to_array
+from keras.preprocessing.image import load_img
 
 dataset_path="C:/Users/Jasmin/Documents/RunesApp/Runes"
 tf.disable_v2_behavior() 
@@ -29,7 +33,8 @@ def load_dataset():
             folder_list=image[1]
         train_images_x.append(image[2]) 
         for i in train_images_x[count]:
-            x.append(io.imread(str(dataset_path)+"/"+str(folder_list[count-1])+"/"+str(i)))
+            z=(str(dataset_path)+"/"+str(folder_list[count-1])+"/"+str(i))
+            x.append(cv2.imread(z,cv2.IMREAD_UNCHANGED))
             y.append(count-1)
         count+=1
 
@@ -37,10 +42,28 @@ def load_dataset():
     
     
 def data_preprocessing():
-    
+   
+    count=0
+    y_res=[]
+    x_res=[]
+    height = 224
+    width = 224
+    dim = (width, height)
     for img in x:
-        img = (img - np.min(img)) / (np.max(img) - np.min(img))
+        res_img = []
+        if img is None:
+            print("there is broken data at index ",count)
+        else:
+            for i in range(len(img)-1):
+                res = cv2.resize(img[i], dim, interpolation=cv2.INTER_LINEAR)
+                res_img.append(res)
+            x_res.append(np.array(res_img))
+            y_res.append(y[count])
+        count+=1
     print("Preprocessing terminated succesfully!")
+    return x_res, y_res
+    
+    
 
 def build_dataset():
     train_X, test_X, train_y, test_y = train_test_split(x, y, 
@@ -77,18 +100,27 @@ model.compile(
 
 
 load_dataset()
-data_preprocessing()
-train_X,test_X,train_y,test_y, eval_x,eval_y=build_dataset()
+x,y = data_preprocessing()
+
+x_train,x_test,y_train,y_test, x_eval,y_eval=build_dataset()
+
+img_rows=np.array(x_train[0]).shape[0]
+img_cols=np.array(x_test[0]).shape[1]
+
+X_train=np.array(x_train).reshape(np.array(x_train).shape[0],img_rows,img_cols,1)
+
+X_test=np.array(x_test).reshape(np.array(x_test).shape[0],img_rows,img_cols,1)
 
 
+Input_shape=(img_rows,img_cols,1)
 
 model.fit(
-        train_X,
-        train_y,
+        x_train,
+        y_train,
         batch_size=10,
         epochs=2,
         # We pass some validation for
         # monitoring validation loss and metrics
         # at the end of each epoch
-        validation_data=(eval_x, eval_y)
+        validation_data=(x_eval, y_eval)
 )
